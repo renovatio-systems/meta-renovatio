@@ -1,0 +1,73 @@
+#!/bin/sh
+# Runs stock_monitor on the HDMI console (tty1). Waits for a network
+# connection and for the Finnhub API key before starting, and shows the
+# board's IP address so the key can be copied over with scp.
+
+CONF_DIR=/etc/finnhub-stock-tracker
+API_FILE=$CONF_DIR/api.txt
+TICKER_FILE=$CONF_DIR/tickers.txt
+INTERVAL=${STOCK_MONITOR_INTERVAL:-60}
+TAG=finnhub-stock-tracker
+
+# Screen gets everything; the journal only gets state changes so it isn't
+# flooded while we poll.
+log() {
+    logger -t "$TAG" "$*"
+}
+
+clear_screen() {
+    printf '\033[H\033[J'
+}
+
+# Non-loopback IPv4 addresses, one per line.
+ip_addresses() {
+    ip -4 addr show 2>/dev/null |
+        awk '$1 == "inet" && $2 !~ /^127\./ { sub(/\/.*/, "", $2); print $2 }'
+}
+
+has_default_route() {
+    awk 'NR > 1 && $2 == "00000000" { found = 1 } END { exit !found }' /proc/net/route
+}
+
+# --- wait for networking ---
+if ! has_default_route || [ -z "$(ip_addresses)" ]; then
+    log "Waiting for networking"
+    clear_screen
+    printf 'Finnhub stock monitor\n\nWaiting for networking'
+    while ! has_default_route || [ -z "$(ip_addresses)" ]; do
+        printf '.'
+        sleep 2
+    done
+    printf '\n'
+fi
+log "Network is up: $(ip_addresses | tr '\n' ' ')"
+
+# --- wait for the API key ---
+if [ ! -s "$API_FILE" ]; then
+    log "API key not found at $API_FILE, waiting for it to be copied over"
+    shown=""
+    while [ ! -s "$API_FILE" ]; do
+        addrs=$(ip_addresses)
+        if [ "$addrs" != "$shown" ]; then
+            [ -n "$shown" ] && log "IP address changed: $(echo $addrs)"
+            shown=$addrs
+            clear_screen
+            printf 'Finnhub stock monitor\n\n'
+            printf 'ERROR: API key file %s not found.\n\n' "$API_FILE"
+            printf 'Get a free key from https://finnhub.io/ and copy it to this board.\n'
+            printf 'This board can be reached at:\n\n'
+            for a in $addrs; do
+                printf '    %s\n' "$a"
+            done
+            printf '\nFrom another computer, run:\n\n'
+            printf '    echo YOUR_API_KEY > api.txt\n'
+            printf '    scp api.txt root@%s:%s/\n\n' "$(echo "$addrs" | head -n 1)" "$CONF_DIR"
+            printf 'Tickers are read from %s and can be edited the same way.\n\n' "$TICKER_FILE"
+            printf 'Waiting for %s ...\n' "$API_FILE"
+        fi
+        sleep 3
+    done
+    log "API key found, starting"
+fi
+
+exec stock_monitor "$TICKER_FILE" --watch "$INTERVAL"

@@ -1,0 +1,26 @@
+[Unit]
+Description=Finnhub stock monitor on the HDMI console
+Documentation=https://github.com/renovatio-systems/finnhub-stock-tracker
+# Take tty1 over from the login prompt. The serial console is unaffected.
+Conflicts=getty@tty1.service autovt@tty1.service
+After=getty@tty1.service systemd-user-sessions.service getty-pre.target
+Before=getty.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/finnhub-stock-tracker
+Environment=TERM=linux
+ExecStart=/usr/bin/finnhub-stock-tracker-launcher
+Restart=always
+RestartSec=5
+
+StandardInput=tty
+StandardOutput=tty
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+[Install]
+WantedBy=multi-user.target

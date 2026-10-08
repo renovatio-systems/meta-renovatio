@@ -1,0 +1,27 @@
+{
+    "display": {
+        "type": "2in15g",
+        "rotation": "auto",
+        "partial_refresh": "ptl83"
+    },
+    "location": {
+        "name": "London",
+        "latitude": 51.5072,
+        "longitude": -0.1276
+    },
+    "timezone": "Europe/London",
+    "clock": {
+        "24_hour": true,
+        "refresh_minutes": 1,
+        "full_refresh_minutes": 60
+    },
+    "weather": {
+        "enabled": true,
+        "units": "metric",
+        "refresh_minutes": 30
+    },
+    "fonts": {
+        "regular": "/usr/share/fonts/truetype/DejaVuSans-Bold.ttf",
+        "bold": "/usr/share/fonts/truetype/DejaVuSans-Bold.ttf"
+    }
+}

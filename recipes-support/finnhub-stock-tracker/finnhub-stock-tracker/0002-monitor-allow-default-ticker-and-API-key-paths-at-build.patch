@@ -1,0 +1,77 @@
+From: Kumar Bala <kumar@renovatio.systems>
+Subject: monitor: allow the default ticker and API key paths to be set
+ at build time
+
+Add a STOCK_MONITOR_CONFIG_DIR CMake option. When set, tickers.txt and
+api.txt are read from that directory by default instead of the current
+directory, so a packaged build can keep them under /etc. A ticker file
+given on the command line still takes precedence.
+
+Also name the actual file in the error when the API key file can't be
+opened, rather than always saying api.txt.
+
+Upstream-Status: Pending
+Signed-off-by: Kumar Bala <kumar@renovatio.systems>
+---
+ CMakeLists.txt |  9 +++++++++
+ monitor.c      | 13 ++++++++++---
+ 2 files changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0a83686..0e92b48 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -14,6 +14,15 @@ pkg_check_modules(CJSON REQUIRED IMPORTED_TARGET libcjson)
+ add_executable(stock_monitor monitor.c)
+ target_link_libraries(stock_monitor PRIVATE PkgConfig::CURL PkgConfig::CJSON)
+ 
++# Optional directory holding tickers.txt and api.txt. When unset, both are
++# read from the current directory.
++set(STOCK_MONITOR_CONFIG_DIR "" CACHE PATH "Default directory for tickers.txt and api.txt")
++if(STOCK_MONITOR_CONFIG_DIR)
++    target_compile_definitions(stock_monitor PRIVATE
++        DEFAULT_TICKER_FILE="${STOCK_MONITOR_CONFIG_DIR}/tickers.txt"
++        DEFAULT_API_FILE="${STOCK_MONITOR_CONFIG_DIR}/api.txt")
++endif()
++
+ install(TARGETS stock_monitor RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+ 
+ file(COPY_FILE "${CMAKE_SOURCE_DIR}/tickers.txt" "${CMAKE_BINARY_DIR}/tickers.txt" ONLY_IF_DIFFERENT)
+diff --git a/monitor.c b/monitor.c
+index 30908a7..3c40ac7 100644
+--- a/monitor.c
++++ b/monitor.c
+@@ -11,6 +11,13 @@
+ #define BASE_URL "https://finnhub.io/api/v1"
+ #define MAX_LINE 128
+ 
++#ifndef DEFAULT_TICKER_FILE
++#define DEFAULT_TICKER_FILE "tickers.txt"
++#endif
++#ifndef DEFAULT_API_FILE
++#define DEFAULT_API_FILE "api.txt"
++#endif
++
+ #define COLOR_RESET "\033[0m"
+ #define COLOR_GREEN "\033[32m"
+ #define COLOR_RED   "\033[31m"
+@@ -138,7 +145,7 @@ static int load_tickers(const char *filename, TickerList *list) {
+ static char *read_api_key(const char *filename) {
+     FILE *fp = fopen(filename, "r");
+     if (!fp) {
+-        perror("Unable to open api.txt");
++        perror(filename);
+         return NULL;
+     }
+ 
+@@ -392,8 +399,8 @@ static void run_once(const TickerList *tickers, const char *api_key) {
+ }
+ 
+ int main(int argc, char *argv[]) {
+-    const char *ticker_file = "tickers.txt";
+-    const char *api_file = "api.txt";
++    const char *ticker_file = DEFAULT_TICKER_FILE;
++    const char *api_file = DEFAULT_API_FILE;
+     int watch_interval = 0;
+ 
+     for (int i = 1; i < argc; i++) {

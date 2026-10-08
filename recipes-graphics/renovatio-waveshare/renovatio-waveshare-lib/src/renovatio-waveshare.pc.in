@@ -1,0 +1,10 @@
+prefix=@PREFIX@
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: renovatio-waveshare
+Description: Display library for Waveshare 4-colour e-Paper panels
+Version: @VERSION@
+Requires: freetype2
+Cflags: -I${includedir}
+Libs: -L${libdir} -lrenovatio-waveshare -lbcm2835 -lm

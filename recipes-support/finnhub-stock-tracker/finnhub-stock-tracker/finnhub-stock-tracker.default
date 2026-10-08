@@ -1,0 +1,5 @@
+# Settings for finnhub-stock-tracker.service
+
+# Seconds between refreshes. The free Finnhub tier allows 60 requests a
+# minute and each ticker uses two per refresh.
+STOCK_MONITOR_INTERVAL=60

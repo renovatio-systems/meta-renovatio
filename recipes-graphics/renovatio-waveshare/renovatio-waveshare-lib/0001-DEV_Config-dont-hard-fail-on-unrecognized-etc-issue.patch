@@ -1,0 +1,31 @@
+From: Kumar Bala <kumar@renovatio.systems>
+Date: Wed, 26 Aug 2026 16:00:00 +0100
+Subject: [PATCH] DEV_Config: don't hard-fail on unrecognized /etc/issue
+
+DEV_Equipment_Testing() refuses to run unless /etc/issue contains
+"Raspbian", "Debian", or "NixOS". Yocto/Poky-built images have a
+different /etc/issue despite genuinely running on Raspberry Pi
+hardware, so this check produced a false negative and aborted
+DEV_Module_Init() before bcm2835_init() ever ran. Warn instead of
+refusing to continue.
+
+Upstream-Status: Inappropriate [distro-specific check not relevant upstream]
+Signed-off-by: Kumar Bala <kumar@renovatio.systems>
+---
+--- a/RaspberryPi_JetsonNano/c/lib/Config/DEV_Config.c
++++ b/RaspberryPi_JetsonNano/c/lib/Config/DEV_Config.c
+@@ -255,10 +255,10 @@
+ 		}
+ 	}
+ 	if (!detected) {
+-		printf("not recognized\n");
+-		printf("Built for Raspberry Pi, but unable to detect environment.\n");
+-		printf("Perhaps you meant to 'make JETSON' instead?\n");
+-		return -1;
++		/* Yocto-built images (e.g. Poky) won't match this /etc/issue
++		 * allowlist even though they are genuinely Raspberry Pi - only
++		 * warn instead of refusing to run. */
++		printf("not recognized (continuing anyway)\n");
+ 	}
+ #endif
+ #ifdef JETSON

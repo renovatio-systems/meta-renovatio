@@ -1,0 +1,15 @@
+[Unit]
+Description=Renovatio e-Paper clock and weather display
+Wants=network-online.target
+After=network-online.target time-sync.target
+
+[Service]
+Type=simple
+# Root is needed: the bcm2835 library drives SPI/GPIO through /dev/mem.
+ExecStart=/usr/bin/renovatio-waveshare-clock -c /etc/renovatio-waveshare/clock.json
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
